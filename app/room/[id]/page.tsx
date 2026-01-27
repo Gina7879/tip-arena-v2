@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -23,6 +23,25 @@ export default function RoomPage({ params }: PageProps) {
   const [settling, setSettling] = useState(false);
   const [showPoster, setShowPoster] = useState(false);
 
+  const fetchRoom = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', resolvedParams.id)
+        .single();
+      
+      if (error) throw error;
+      setRoom(data);
+    } catch (error) {
+      console.error('获取房间信息失败:', error);
+      alert('房间不存在');
+      router.push('/');
+    } finally {
+      setLoading(false);
+    }
+  }, [resolvedParams.id, router]);
+
   useEffect(() => {
     fetchRoom();
     
@@ -42,26 +61,7 @@ export default function RoomPage({ params }: PageProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [resolvedParams.id]);
-
-  const fetchRoom = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('id', resolvedParams.id)
-        .single();
-      
-      if (error) throw error;
-      setRoom(data);
-    } catch (error) {
-      console.error('获取房间信息失败:', error);
-      alert('房间不存在');
-      router.push('/');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [resolvedParams.id, fetchRoom]);
 
   const handleSettle = async () => {
     if (!publicKey || !room) return;
@@ -93,7 +93,7 @@ export default function RoomPage({ params }: PageProps) {
       // Update room status
       await supabase
         .from('rooms')
-        .update({ status: 'completed' })
+        .update({ status: 'completed' } as never)
         .eq('id', resolvedParams.id);
 
       // Show winner poster

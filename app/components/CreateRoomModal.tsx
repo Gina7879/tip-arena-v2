@@ -38,7 +38,7 @@ export default function CreateRoomModal({ isOpen, onClose, onSuccess }: Props) {
         status: 'active',
       };
 
-      const { error } = await supabase.from('rooms').insert(newRoom);
+      const { error } = await supabase.from('rooms').insert([newRoom] as never);
       
       if (error) throw error;
       
